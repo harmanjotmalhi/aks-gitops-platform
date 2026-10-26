@@ -1,0 +1,70 @@
+# Values for installing Argo CD via its official Helm chart:
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm install argocd argo/argo-cd -n argocd -f argocd/install/values.yaml
+#
+# Hardened defaults: HA-ready, RBAC enabled, server runs behind cluster ingress.
+
+global:
+  # Spread Argo CD components for resilience.
+  podLabels:
+    app.kubernetes.io/part-of: platform
+
+configs:
+  params:
+    # Run the API server with TLS termination at ingress (insecure=false here
+    # means the server itself still serves TLS; set per your ingress design).
+    server.insecure: false
+
+  cm:
+    # Only allow applications from the platform project's declared repo.
+    application.resourceTrackingMethod: annotation
+    # Timeout for reconciliation (drift detection polling).
+    timeout.reconciliation: 180s
+
+  rbac:
+    # Default role: read-only. Elevated access via Azure AD groups mapped below.
+    policy.default: role:readonly
+    policy.csv: |
+      # Platform admins (Azure AD group) get full admin.
+      g, platform-admins, role:admin
+      # App operators may sync/rollback applications in the platform project.
+      p, role:app-operator, applications, sync, platform/*, allow
+      p, role:app-operator, applications, action/*, platform/*, allow
+      p, role:app-operator, applications, get, platform/*, allow
+      g, app-operators, role:app-operator
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+repoServer:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+server:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+applicationSet:
+  replicas: 1
+
+dex:
+  enabled: false  # Using Azure AD via OIDC at the ingress/SSO layer instead.

@@ -1,0 +1,65 @@
+name: manifests-ci
+
+on:
+  pull_request:
+    paths:
+      - "k8s/**"
+      - "argocd/**"
+      - "scripts/**"
+      - ".github/workflows/manifests-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "k8s/**"
+      - "argocd/**"
+
+permissions:
+  contents: read
+
+jobs:
+  structural:
+    name: structural validation (python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Validate k8s + argocd manifests have required fields
+        run: |
+          python scripts/validate_manifests.py "k8s/**/*.yaml" \
+            "argocd/applications/*.yaml" "argocd/projects/*.yaml"
+
+  schema:
+    name: schema validation (kubeconform)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: kubeconform k8s security manifests
+        uses: docker://ghcr.io/yannh/kubeconform:latest
+        with:
+          # Argo CD + CSI CRDs are not in the default schema set -> ignore-missing.
+          args: >-
+            -strict -ignore-missing-schemas -summary
+            -schema-location default
+            k8s/
+
+  yaml-lint:
+    name: yaml lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run yamllint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: "k8s/ argocd/ helm/sample-web-app/values*.yaml"
+          config_data: |
+            extends: default
+            rules:
+              line-length: disable
+              document-start: disable
+              comments:
+                min-spaces-from-content: 1
+              truthy:
+                check-keys: false

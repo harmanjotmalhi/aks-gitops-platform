@@ -1,0 +1,28 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+plan.txt
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# NEVER commit secret var files
+*.auto.tfvars
+secrets.tfvars
+
+# Local env / secrets
+.env
+*.pem
+*.key
+kubeconfig*
+
+# OS
+.DS_Store
+Thumbs.db

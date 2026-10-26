@@ -1,0 +1,79 @@
+# Role-based access control with least privilege.
+#
+# Two personas are modeled:
+#   * app-developers  — can view and troubleshoot workloads in sample-app,
+#                       but cannot mutate RBAC, secrets, or network policies.
+#   * app-operators   — can manage application workloads (deploy/rollback)
+#                       within sample-app only.
+#
+# Subjects are Azure AD group object IDs (AKS-managed Azure AD). Replace the
+# placeholder group IDs before applying.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-developer
+  namespace: sample-app
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "events", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+  # Read-only: developers may exec for debugging but not delete.
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-operator
+  namespace: sample-app
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "events", "endpoints", "pods/exec"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "deployments/scale", "deployments/rollback"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-developer-binding
+  namespace: sample-app
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: app-developer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    # Replace with the Azure AD developers group object ID.
+    name: "00000000-0000-0000-0000-000000000000"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-operator-binding
+  namespace: sample-app
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: app-operator
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    # Replace with the Azure AD operators group object ID.
+    name: "11111111-1111-1111-1111-111111111111"

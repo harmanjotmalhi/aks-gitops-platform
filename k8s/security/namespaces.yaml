@@ -1,0 +1,33 @@
+# Namespace isolation: each workload domain gets its own namespace, labeled with
+# Pod Security Standards (restricted) enforcement so that privileged pods are rejected.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sample-app
+  labels:
+    name: sample-app
+    # Enforce the strictest Pod Security Standard.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+  labels:
+    name: platform
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+    # Argo CD components require baseline (not restricted) to run.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline

@@ -1,0 +1,29 @@
+# App-of-apps root Application. Pointing Argo CD at this single Application
+# bootstraps the entire platform: it syncs the argocd/applications directory,
+# which in turn contains the child Applications (security baseline, sample app).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/your-org/aks-gitops-platform.git
+    targetRevision: main
+    path: argocd/applications
+    directory:
+      recurse: false
+      # Only pick up Application manifests, not this root file itself.
+      include: "{security-app.yaml,sample-web-app-dev.yaml,sample-web-app-prod.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

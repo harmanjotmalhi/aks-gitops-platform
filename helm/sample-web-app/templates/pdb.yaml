@@ -1,0 +1,14 @@
+{{- if gt (int .Values.replicaCount) 1 }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "sample-web-app.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "sample-web-app.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "sample-web-app.selectorLabels" . | nindent 6 }}
+{{- end }}

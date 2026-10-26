@@ -1,0 +1,11 @@
+{{ .Chart.Name }} v{{ .Chart.AppVersion }} deployed to namespace "{{ .Values.namespace }}".
+
+Release:   {{ .Release.Name }}
+Replicas:  {{ if .Values.autoscaling.enabled }}autoscaled {{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }}{{ else }}{{ .Values.replicaCount }}{{ end }}
+
+Check rollout status:
+  kubectl rollout status deployment/{{ include "sample-web-app.fullname" . }} -n {{ .Values.namespace }}
+
+Port-forward to test locally:
+  kubectl port-forward svc/{{ include "sample-web-app.fullname" . }} 8080:{{ .Values.service.port }} -n {{ .Values.namespace }}
+  curl http://localhost:8080

@@ -1,0 +1,46 @@
+name: helm-ci
+
+on:
+  pull_request:
+    paths:
+      - "helm/**"
+      - ".github/workflows/helm-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "helm/**"
+
+permissions:
+  contents: read
+
+jobs:
+  lint-template:
+    name: helm lint + template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: helm lint (default values)
+        run: helm lint helm/sample-web-app
+
+      - name: helm lint (dev values)
+        run: helm lint helm/sample-web-app -f helm/sample-web-app/values-dev.yaml
+
+      - name: helm lint (prod values)
+        run: helm lint helm/sample-web-app -f helm/sample-web-app/values-prod.yaml
+
+      - name: helm template (renders without error)
+        run: |
+          helm template sample-web-app helm/sample-web-app -f helm/sample-web-app/values-dev.yaml > /tmp/dev.yaml
+          helm template sample-web-app helm/sample-web-app -f helm/sample-web-app/values-prod.yaml > /tmp/prod.yaml
+
+      - name: Validate rendered manifests (kubeconform)
+        uses: docker://ghcr.io/yannh/kubeconform:latest
+        with:
+          args: >-
+            -strict -ignore-missing-schemas -summary
+            /tmp/dev.yaml /tmp/prod.yaml

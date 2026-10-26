@@ -1,0 +1,79 @@
+# Network policies (enforced by Calico). Default-deny posture: all ingress and
+# egress in sample-app is denied, then explicitly re-allowed for required flows.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: sample-app
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow DNS resolution to kube-dns/CoreDNS (required for virtually all pods).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: sample-app
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Allow ingress to the sample web app from ingress controllers in the platform
+# namespace, on the app container port only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-web-app
+  namespace: sample-app
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: sample-web-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: platform
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Allow the app to reach HTTPS endpoints (e.g. Key Vault, external APIs).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-https-egress
+  namespace: sample-app
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: sample-web-app
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.0.0/16
+              - 10.0.0.0/8
+      ports:
+        - protocol: TCP
+          port: 443

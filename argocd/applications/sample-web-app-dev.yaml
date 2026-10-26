@@ -1,0 +1,38 @@
+# Sample web app (DEV) Application. Deploys the Helm chart using dev values.
+# Synced after the security baseline (default sync-wave 0 > -1).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-web-app-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/your-org/aks-gitops-platform.git
+    targetRevision: main
+    path: helm/sample-web-app
+    helm:
+      releaseName: sample-web-app
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true       # drift detection + pruning
+      selfHeal: true    # self-healing on manual drift
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

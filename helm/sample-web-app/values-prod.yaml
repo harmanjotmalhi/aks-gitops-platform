@@ -1,0 +1,32 @@
+# Prod environment overrides.
+replicaCount: 4
+
+image:
+  tag: "1.27-alpine"
+  pullPolicy: IfNotPresent
+
+env:
+  APP_ENV: prod
+  LOG_LEVEL: info
+
+config:
+  WELCOME_MESSAGE: "Hello from AKS GitOps platform (PROD)"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 4
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 65
+  targetMemoryUtilizationPercentage: 75
+
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1

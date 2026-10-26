@@ -1,0 +1,26 @@
+# Dev environment overrides.
+replicaCount: 2
+
+image:
+  tag: "1.27-alpine"
+
+env:
+  APP_ENV: dev
+  LOG_LEVEL: debug
+
+config:
+  WELCOME_MESSAGE: "Hello from AKS GitOps platform (DEV)"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 96Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75

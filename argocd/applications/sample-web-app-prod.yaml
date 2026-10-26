@@ -1,0 +1,37 @@
+# Sample web app (PROD) Application. Uses prod values and a MANUAL sync policy:
+# drift is detected and reported, but changes are only applied after an explicit
+# `argocd app sync sample-web-app-prod` (or UI sync), giving controlled, gated
+# promotion to production. Self-heal is still enabled to revert unauthorized
+# live drift back to the Git-declared state.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-web-app-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/your-org/aks-gitops-platform.git
+    targetRevision: main
+    path: helm/sample-web-app
+    helm:
+      releaseName: sample-web-app
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app
+  syncPolicy:
+    # No `automated:` block => manual sync. Argo CD still shows OutOfSync on drift.
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 15

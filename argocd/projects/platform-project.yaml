@@ -1,0 +1,61 @@
+# Argo CD AppProject defines a security boundary: which repos Applications may
+# pull from, which clusters/namespaces they may deploy to, and which resource
+# kinds are permitted. This enforces least privilege for GitOps-managed apps.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Platform applications (security baseline + sample web app).
+
+  # Only this repository may be used as a source.
+  sourceRepos:
+    - https://github.com/your-org/aks-gitops-platform.git
+
+  # Restrict deploy targets to the in-cluster API and known namespaces.
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: sample-app
+    - server: https://kubernetes.default.svc
+      namespace: platform
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+
+  # Cluster-scoped resources this project is allowed to manage.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # Namespaced resources allowed (deny everything else).
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: LimitRange
+    - group: apps
+      kind: Deployment
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: secrets-store.csi.x-k8s.io
+      kind: SecretProviderClass
+
+  # Keep deployment history for rollbacks.
+  orphanedResources:
+    warn: true

@@ -1,0 +1,39 @@
+# Security baseline Application: namespaces, RBAC, network policies, quotas,
+# and SecretProviderClass. Synced first (sync-wave -1) so that namespaces and
+# policies exist before workloads land.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: security-baseline
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/your-org/aks-gitops-platform.git
+    targetRevision: main
+    path: k8s/security
+  destination:
+    server: https://kubernetes.default.svc
+    # Namespaces manifest is cluster-scoped; namespaced objects carry their own ns.
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true      # drift: remove resources deleted from Git
+      selfHeal: true   # self-heal: revert manual live changes back to Git state
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+  # Retain 10 revisions to support controlled rollbacks (argocd app rollback).
+  revisionHistoryLimit: 10
